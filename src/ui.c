@@ -3600,7 +3600,7 @@ static void RealJoystickConfiguration(void)
 	for (;;) {
 		/*Set the CHECK items*/
 		for (i = 0; i < 4; i++) {
-			SetItemChecked(real_js_menu_array, i, SDL_INPUT_GetRealJSConfig(i)->use_hat);
+			SetItemChecked(real_js_menu_array, i, SDL_INPUT_GetRealJSConfig(i)->use_hat_as_stick);
 		}
 
 		option = UI_driver->fSelect(title, 0, option, real_js_menu_array, NULL);
@@ -3610,19 +3610,19 @@ static void RealJoystickConfiguration(void)
 		switch (option) {
 			case 0:
 				js_config = SDL_INPUT_GetRealJSConfig(0);
-				js_config->use_hat = !js_config->use_hat;
+				js_config->use_hat_as_stick = !js_config->use_hat_as_stick;
 				break;
 			case 1:
 				js_config = SDL_INPUT_GetRealJSConfig(1);
-				js_config->use_hat = !js_config->use_hat;
+				js_config->use_hat_as_stick = !js_config->use_hat_as_stick;
 				break;
 			case 2:
 				js_config = SDL_INPUT_GetRealJSConfig(2);
-				js_config->use_hat = !js_config->use_hat;
+				js_config->use_hat_as_stick = !js_config->use_hat_as_stick;
 				break;
 			case 3:
 				js_config = SDL_INPUT_GetRealJSConfig(3);
-				js_config->use_hat = !js_config->use_hat;
+				js_config->use_hat_as_stick = !js_config->use_hat_as_stick;
 				break;
 		}
 	}
