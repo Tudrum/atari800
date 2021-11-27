@@ -38,6 +38,11 @@
 #ifdef USE_UI_BASIC_ONSCREEN_KEYBOARD
 #define AKEY_KEYB                  -32
 #endif
+//adept_zap: edit added support for starting and stopping turbo 
+#define AKEY_TURBO_START           -33
+#define AKEY_TURBO_STOP            -34
+//adept_zap: end edit
+
 #ifdef DIRECTX
 	/* special menu directives */
 	#define AKEY32_MENU_SAVE_CONFIG     -107
