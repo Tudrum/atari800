@@ -1,0 +1,118 @@
+by adept_zap
+
+I've added more advanced gamepad support to emulator ver. 4.2.0
+
+Im not sure if LPT_joy and OSK (on screen keyboard) will work with my changes.
+I intent to fix those in the future.
+Also there is no support for command line arguments for now and
+gamepads cannot be configured from UI.
+
+Best way to configure gamepad support is to edit configuration file (atari800.cfg)
+
+All options for advanced gamepad support starts with "SDL_PAD_", then goes pad number (0-3),
+then option.
+
+New pad options added (with default values):
+
+SDL_PAD_0_JOY_DEADZONE=15000   - tells pad what is the size of deadzone (0-32767)
+
+SDL_PAD_0_JOY_TOLERANCE=0.100000 - pad deadzone tolerance, eg. tolerance 0.1 means 10%
+                                   so for deadzone 15000 and tolerance 0.1 pad joystick
+                                   will start registering joystick deviation of
+                                   16500 (15000 + 0.1 * 15000) and stop when at
+                                   13500 (15000 - 0.1 * 15000)
+
+SDL_PAD_0_JOY_USE_AS_STICK=1 - enables reading joystick in games
+
+SDL_PAD_0_HAT_USE_AS_STICK=1 - enables reading hat in games (dpad)
+
+SDL_PAD_0_JOY_USE_IN_MENUS=0 - enables joystick in menus
+
+SDL_PAD_0_HAT_USE_IN_MENUS=0 - enables hat in menus
+
+SDL_PAD_0_IN_MENUS_SELECT_BUTTON=0 - button used in menus to select options
+
+SDL_PAD_0_IN_MENUS_BACK_BUTTON=1 - button used in menus to back to previous window
+                                   (and exit ui completely)
+
+SDL_PAD_0_AUTOFIRE_FREQ=2 - frequency of autofire, see below
+
+
+Button options:
+
+eg.
+SDL_PAD_0_BUTTON_3_FUNC=FNPAD_FIRE_HOLD     - button nr. 3 for gamepad 0 will trigger
+                                              fire when hold
+
+SDL_PAD_0_BUTTON_3_SP_FUNC=FNPAD_AUTOFIRE_TOGGLE  - button nr. 3 for gamepad 0 will trigger
+                                                    fire when hold, but when pressed with
+                                                    "special" button
+
+SDL_PAD_0_BUTTON_10_FUNC=FNPAD_SP_HOLD      - button nr. 10 for gamepad 0 will act as
+                                              "special" button
+
+In this example pressing button 3 will trigger "fire" on emulated joystick.
+Pressing button 10 and 3 simultaneusly will toggle autofire.
+
+Configuration supports for 16 buttons.
+
+
+Autofire:
+
+Autofire frequency - when autofire is on then frequency says how many atari frames have
+ fire button pressed and how many don't. Frequency equal to 2 tells that fire will be
+ pressed for 2 frames and released for next 2.
+
+Autofire toggle - pressing button for autofire toggle will enable autofire, pressing
+ button again will disable it.
+
+Autofire hold - pressing button for "autofire hold" will enable autofire for the time
+ hold button is pressed (releasing it will disable autofire). If autofire is enabled
+ by "autofire toggle" button then "autofire hold" will reverse autofire behaviour
+ (holding "autofire hold" will disable autofire)
+
+Fire toggle and fire hold works similarly to autofire only for continuous fire.
+
+
+Possible button functions:
+
+FNPAD_NONE - no function
+FNPAD_SP_HOLD - "special button"
+FNPAD_FIRE_HOLD - "fire hold" button
+FNPAD_FIRE_TOGGLE - "fire toggle" button
+FNPAD_AUTOFIRE_HOLD - "autofire hold" button
+FNPAD_AUTOFIRE_TOGGLE - "autofire toggle" button
+FNPAD_START_HOLD - START function button
+FNPAD_SELECT_HOLD - SELECT function button
+FNPAD_OPTION_HOLD - OPTION function button
+FNPAD_TURBO_HOLD - TURBO button (enabled untill button is released)
+FNPAD_TURBO_TOGGLE - TURBO button (switches turbo on/off)
+FNPAD_EXIT - exit emulator
+FNPAD_UI - show menu ui
+FNPAD_SAVESTATE - not programmed yet
+FNPAD_LOADSTATE - not programmed yet
+FNPAD_WARMSTART - warmstart (RESET button)
+FNPAD_COLDSTART - coldstart (atari off/on)
+FNPAD_BREAK - break key button
+FNPAD_SCREENSHOT - take screenshot
+FNPAD_SCREENSHOT_INTERLACE - take interlaced screenshot
+FNPAD_KEYB - on screen keyboard - untested, probably not working
+FNPAD_HELP - HELP button
+FNPAD_ESCAPE - escape button
+FNPAD_KEY_SPACEBAR - spacebar button
+
+Other atari key can be emulated with FNPAD_CODE_
+FNPAD_CODE_[hex code of the key]
+
+for example: FNPAD_CODE_15 will emulate pressing "b" key (helpfull for game "Ghostbusters" where
+ "b" key deploys bait)
+Key codes in hex are written in "akey.h" file
+To simulate shift + key one can add 0x40 to key code, for example FNPAD_CODE_55 goes for "shift+b"
+Same goes for ctrl key but with value 0x80 (FNPAD_CODE_95 goes for "ctrl+b")
+
+
+TODO:
+1)Better support for loadstate and savestate, this needs major work to be done in many files
+2)Better configuration of gamepads from UI
+3)Checking of osk and LPT joystick because their code colide with mine.
+  I don't have a lpt port so this will be tricky to test and eventually repair.
