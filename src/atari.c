@@ -1296,14 +1296,14 @@ void Atari800_Frame(void)
 	case AKEY_TURBO:
 		Atari800_turbo = !Atari800_turbo;
 		break;
-	//adept_zap: edit added support for starting and stopping turbo
+	/*adept_zap: edit added support for starting and stopping turbo*/
 	case AKEY_TURBO_START:
 		Atari800_turbo = TRUE;
 		break;
 	case AKEY_TURBO_STOP:
 		Atari800_turbo = FALSE;
 		break;
-	//adept_zap: end edit
+	/*adept_zap: end edit*/
 	case AKEY_UI:
 #ifdef SOUND
 		Sound_Pause();
