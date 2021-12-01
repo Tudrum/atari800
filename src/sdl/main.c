@@ -180,6 +180,7 @@ int main(int argc, char **argv)
 
 	/* main loop */
 	for (;;) {
+		/*SDL_INPUT_Update();*/
 		INPUT_key_code = PLATFORM_Keyboard();
 #ifdef USE_UI_BASIC_ONSCREEN_KEYBOARD
 		if (INPUT_key_code == AKEY_KEYB) {

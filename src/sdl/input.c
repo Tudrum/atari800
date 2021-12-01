@@ -98,23 +98,23 @@ static int KBD_TURBO = SDLK_F12;
 static int fd_joystick0 = -1;
 static int fd_joystick1 = -1;
 
-//atari joystick state struct
+/*atari joystick state struct*/
 typedef struct atari_joystick_state {
 	unsigned int port;
 	unsigned int trig;
 } atari_joystick_state;
 
 
-//---------------------------------------------------------------------------------------------------------------------
-//GamePad support
-//---------------------------------------------------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------------------------------------
+ *GamePad support
+ *---------------------------------------------------------------------------------------------------------------------*/
 
-// gamepad functions
-//0 - none
-//1 - 255 - internal functions
-//256 - 512 - press and release functions
-//512 - 767 - press only functions
-//768 - 1023 - press only functions but with key code reading
+/* gamepad functions*/
+/*0 - none*/
+/*1 - 255 - internal functions*/
+/*256 - 512 - press and release functions*/
+/*512 - 767 - press only functions*/
+/*768 - 1023 - press only functions but with key code reading*/
 #define FNPAD_NONE					0
 #define FNPAD_SP_HOLD				1
 #define FNPAD_FIRE_HOLD				2
@@ -143,72 +143,72 @@ typedef struct atari_joystick_state {
 #define FNPAD_CODE_					768
 
 typedef struct gamepads_sdl_state_t {
-	//-1,0,1 for x axis
+	/*-1,0,1 for x axis*/
 	int x;
-	//-1,0,1 for y axis
+	/*-1,0,1 for y axis*/
 	int y;
-	//same as x only for hat
+	/*same as x only for hat*/
 	int hx;
-	//same as y only for hat
+	/*same as y only for hat*/
 	int hy;
-	//every bit represents button state (16 bits)
+	/*every bit represents button state (16 bits)*/
 	unsigned int buttons;
-	//TRUE if special button is pressed
+	/*TRUE if special button is pressed*/
 	int special;
 } gamepads_sdl_state_t;
 
 typedef struct gamepads_fire_state_t {
-	//phase of autofire, if it is less than autofire frequency then fire will be pressed, if greater then not
+	/*phase of autofire, if it is less than autofire frequency then fire will be pressed, if greater then not*/
 	int autofire_phase;
-	//tells if autofire from toggle is on (not from autofire hold button)
+	/*tells if autofire from toggle is on (not from autofire hold button)*/
 	int autofire_toggle_on;
-	//tells if autofire is on;
+	/*tells if autofire is on;*/
 	int autofire_actual_on;
-	//tells if autofire in last update was on
+	/*tells if autofire in last update was on*/
 	int autofire_last_on;
-	//tells if fire toggle is on (not from fire hold button)
+	/*tells if fire toggle is on (not from fire hold button)*/
 	int fire_toggle_on;
-	//result of both autofire and fire buttons adn states
+	/*result of both autofire and fire buttons adn states*/
 	int fire;
 } gamepads_fire_state_t;
 
-//maximum number of supported gamepads
+/*maximum number of supported gamepads*/
 #define MAX_GAMEPADS			4
-//maximum number of supported buttons per gamepad
+/*maximum number of supported buttons per gamepad*/
 #define MAX_GAMEPAD_BUTTONS		16
-//default deadzone size for gamepads
+/*default deadzone size for gamepads*/
 #define DEFAULT_DEADZONE 10000
-//gamepads detected by SDL system
+/*gamepads detected by SDL system*/
 static SDL_Joystick *sdl_gamepads[MAX_GAMEPADS] = { NULL, NULL, NULL, NULL };
-//tells if config was reseting
+/*tells if config was reseting*/
 static int gamepad_config_reset = FALSE;
-//gamepads configuration (also used in ui.c)
+/*gamepads configuration (also used in ui.c)*/
 static SDL_INPUT_RealJSConfig_t gamepad_configuration[MAX_GAMEPADS];
-//mask helping to detect if special function was invoked (button pressed with special button at the same time)
+/*mask helping to detect if special function was invoked (button pressed with special button at the same time)*/
 static unsigned int gamepad_special_mask[MAX_GAMEPADS];
-//mask helping to detect if atari key buttons is pressed/released
+/*mask helping to detect if atari key buttons is pressed/released*/
 static unsigned int gamepad_atari_key_mask[MAX_GAMEPADS];
-//tells if masks are valid
+/*tells if masks are valid*/
 static int gamepad_masks_valid;
-//finite state of the atari joystick for gamepads
+/*finite state of the atari joystick for gamepads*/
 static atari_joystick_state gamepads_atari_joystick_state[MAX_GAMEPADS];
-//pad state during previous read
+/*pad state during previous read*/
 static gamepads_sdl_state_t gamepads_sdl_last_state[MAX_GAMEPADS];
-//pad state during actual read
+/*pad state during actual read*/
 static gamepads_sdl_state_t gamepads_sdl_actual_state[MAX_GAMEPADS];
-//start/select/option state from gamepads
+/*start/select/option state from gamepads*/
 static int gamepads_consol_state;
-//number of gamepads found by sdl system
+/*number of gamepads found by sdl system*/
 static int gamepads_found = 0;
-//number of buttons found on each gamepad
+/*number of buttons found on each gamepad*/
 static int gamepads_max_buttons[MAX_GAMEPADS];
-//state of all things connected to fire buttons
+/*state of all things connected to fire buttons*/
 static gamepads_fire_state_t gamepads_fire_state[MAX_GAMEPADS];
 
-//****************************************************************************
-//StringToPadFunction
-//changes config string to config enum value.
-//****************************************************************************
+/******************************************************************************/
+/*StringToPadFunction*/
+/*changes config string to config enum value.*/
+/******************************************************************************/
 static int StringToPadFunction(char *padFunctionString)
 {
 	if (strcmp(padFunctionString, "FNPAD_NONE") == 0) return FNPAD_NONE;
@@ -244,10 +244,10 @@ static int StringToPadFunction(char *padFunctionString)
 	return FNPAD_NONE;
 }
 
-//****************************************************************************
-//PadFunctionToString
-//changes config enum value to config string.
-//****************************************************************************
+/******************************************************************************/
+/*PadFunctionToString*/
+/*changes config enum value to config string.*/
+/******************************************************************************/
 static void PadFunctionToString(char *outString, int padFunction)
 {
 	switch (padFunction)
@@ -286,14 +286,14 @@ static void PadFunctionToString(char *outString, int padFunction)
 	}
 }
 
-//****************************************************************************
-//GamePads_DetermineMasks
-//determines mask helpers
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_DetermineMasks*/
+/*determines mask helpers*/
+/******************************************************************************/
 static void GamePads_DetermineMasks(int gamepadNumber)
 {
 	int i;
-	//determining special mask
+	/*determining special mask*/
 	gamepad_special_mask[gamepadNumber] = 0;
 	for (i = 0; i < MAX_PAD_BUTTONS; i++) {
 		if (gamepad_configuration[gamepadNumber].button_functions[i] == FNPAD_SP_HOLD) {
@@ -301,7 +301,7 @@ static void GamePads_DetermineMasks(int gamepadNumber)
 		}
 	}
 	gamepad_special_mask[gamepadNumber] |= gamepad_special_mask[gamepadNumber] << 16;
-	//determining other masks
+	/*determining other masks*/
 	gamepad_atari_key_mask[gamepadNumber] = 0;
 	for (i = 0; i < MAX_PAD_BUTTONS; i++) {
 		if (gamepad_configuration[gamepadNumber].button_functions[i] >= 256) {
@@ -313,10 +313,10 @@ static void GamePads_DetermineMasks(int gamepadNumber)
 	}
 }
 
-//****************************************************************************
-//GamePads_Reset_Config
-//Reset configurations for the gamepads.
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_Reset_Config*/
+/*Reset configurations for the gamepads.*/
+/******************************************************************************/
 static void GamePads_Reset_Config(void)
 {
     int i;
@@ -340,19 +340,20 @@ static void GamePads_Reset_Config(void)
 	gamepad_masks_valid = TRUE;
 }
 
-//****************************************************************************
-//GamePads_Write_Config
-//Write configurations for the gamepads.
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_Write_Config*/
+/*Write configurations for the gamepads.*/
+/******************************************************************************/
 static void GamePads_Write_Config(FILE* fp)
 {
+    int i;
+	int j;
+	char outString[50];
+
 	if (!gamepad_config_reset) {
 		GamePads_Reset_Config();
 		gamepad_config_reset = TRUE;
 	}
-    int i;
-	int j;
-	char outString[50];
     for (i = 0; i < MAX_GAMEPADS; i++) {
         fprintf(fp, "SDL_PAD_%d_JOY_DEADZONE=%d\n", i, gamepad_configuration[i].deadzone);
         fprintf(fp, "SDL_PAD_%d_JOY_TOLERANCE=%f\n", i, gamepad_configuration[i].tolerance);
@@ -374,12 +375,20 @@ static void GamePads_Write_Config(FILE* fp)
     }
 }
 
-//****************************************************************************
-//GamePads_Read_Config
-//Read configurations for the gamepads.
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_Read_Config*/
+/*Read configurations for the gamepads.*/
+/******************************************************************************/
 static void GamePads_Read_Config(char *option, char *parameters)
 {
+	char str[3];
+	double number;
+	char *cnt;
+	int len;
+	int joy_number,button_number;
+	char *option0;
+	char *option1;
+
 	if (!gamepad_config_reset) {
 		GamePads_Reset_Config();
 		gamepad_config_reset = TRUE;
@@ -389,16 +398,14 @@ static void GamePads_Read_Config(char *option, char *parameters)
 		return;
 
 	gamepad_masks_valid = FALSE;
-	char str[3];
-	double number;
-	//looking for pad number
-	char *cnt = strchr(option, '_');
+	/*looking for pad number*/
+	cnt = strchr(option, '_');
 	if (cnt == NULL) return;
-	int len = cnt - option;
+	len = cnt - option;
 	if (len > 2 || len == 0) return;
 	strncpy(str, option, len);
 	str[len] = '\0';
-	int joy_number = Util_sscandec(str);
+	joy_number = Util_sscandec(str);
 	if (joy_number >= MAX_GAMEPADS) {
 		return;
 	}
@@ -440,18 +447,18 @@ static void GamePads_Read_Config(char *option, char *parameters)
 		return;
 	}
 	else if (strncmp(option, "_BUTTON_", 8) == 0) {
-		char *option0 = option + 8;
+		option0 = option + 8;
 		cnt = strchr(option0, '_');
 		if (cnt == NULL) return;
 		len = cnt - option0;
 		if (len > 2 || len == 0) return;
 		strncpy(str, option0, len);
 		str[len] = '\0';
-		int button_number = Util_sscandec(str);
+		button_number = Util_sscandec(str);
 		if (button_number >= MAX_GAMEPAD_BUTTONS) {
 			return;
 		}
-		char *option1 = &option0[len];
+		option1 = &option0[len];
 		if (strcmp(option1, "_FUNC") == 0) {
 			gamepad_configuration[joy_number].button_functions[button_number] = StringToPadFunction(parameters);
 			return;
@@ -464,19 +471,20 @@ static void GamePads_Read_Config(char *option, char *parameters)
 	}
 }
 
-//****************************************************************************
-//GamePads_Init
-//Initialize gamepads reading.
-//first,second - -1 means that this joy should be disabled.
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_Init*/
+/*Initialize gamepads reading.*/
+/*first,second - -1 means that this joy should be disabled.*/
+/******************************************************************************/
 static void GamePads_Init(int first, int second)
 {
+	int i;
+
 	if (!gamepad_config_reset) {
 		GamePads_Reset_Config();
 		gamepad_config_reset = TRUE;
 	}
-	//reseting states
-	int i;
+	/*reseting states*/
 	for(i = 0; i < MAX_GAMEPADS; i++) {
 		gamepads_atari_joystick_state[i].port = INPUT_STICK_CENTRE;
 		gamepads_atari_joystick_state[i].trig = TRUE;
@@ -493,7 +501,7 @@ static void GamePads_Init(int first, int second)
 		gamepads_fire_state[i].fire = 0;
 	}
 	gamepads_consol_state = INPUT_CONSOL_NONE;
-	//looking for gamepads
+	/*looking for gamepads*/
 	gamepads_found = 0;
 	for(i = 0; i < SDL_NumJoysticks() && gamepads_found < MAX_GAMEPADS; i++) {
 		sdl_gamepads[gamepads_found] = SDL_JoystickOpen(i);
@@ -505,29 +513,29 @@ static void GamePads_Init(int first, int second)
 			gamepads_max_buttons[gamepads_found] = SDL_JoystickNumButtons(sdl_gamepads[gamepads_found]);
 			if (gamepads_max_buttons[gamepads_found] > MAX_GAMEPAD_BUTTONS)
 				gamepads_max_buttons[gamepads_found] = MAX_GAMEPAD_BUTTONS;
-// #ifdef USE_UI_BASIC_ONSCREEN_KEYBOARD
-			// if (joystick_nbuttons[joysticks_found] > OSK_MAX_BUTTONS)
-				// joystick_nbuttons[joysticks_found] = OSK_MAX_BUTTONS;
-// #endif
+/* #ifdef USE_UI_BASIC_ONSCREEN_KEYBOARD*/
+			/* if (joystick_nbuttons[joysticks_found] > OSK_MAX_BUTTONS)*/
+				/* joystick_nbuttons[joysticks_found] = OSK_MAX_BUTTONS;*/
+/* #endif*/
 			gamepads_found++;
 		}
 	}
 }
 
-//****************************************************************************
-//SDL_INPUT_GetRealJSConfig
-//returns pointer to gamepad configuration
-//this is used by ui
-//****************************************************************************
+/******************************************************************************/
+/*SDL_INPUT_GetRealJSConfig*/
+/*returns pointer to gamepad configuration*/
+/*this is used by ui*/
+/******************************************************************************/
 SDL_INPUT_RealJSConfig_t* SDL_INPUT_GetRealJSConfig(int joyIndex)
 {
     return &gamepad_configuration[joyIndex];
 }
 
-//****************************************************************************
-//GamePads_GetFunctionForButton
-//gets pad function for given button from configuration
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_GetFunctionForButton*/
+/*gets pad function for given button from configuration*/
+/******************************************************************************/
 static int GamePads_GetFunctionForButton(int gamepadNumber, int buttonNumber)
 {
 	if (buttonNumber >= 16) {
@@ -538,32 +546,35 @@ static int GamePads_GetFunctionForButton(int gamepadNumber, int buttonNumber)
 	}
 }
 
-//****************************************************************************
-//GamePads_Update
-//Updates gamepads states. (gamepads_sdl_actual_state)
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_Update*/
+/*Updates gamepads states. (gamepads_sdl_actual_state)*/
+/******************************************************************************/
 static void GamePads_UpdatePad(int gamepadNumber)
 {
-	int i;
-	//updating x and y axis
-	int x = SDL_JoystickGetAxis(sdl_gamepads[gamepadNumber], 0);
-	int y = SDL_JoystickGetAxis(sdl_gamepads[gamepadNumber], 1);
+	int i,x,y,xminlimit,xmaxlimit,yminlimit,ymaxlimit,autofire,fire,mask,trigFunc,handled,changed,pressed,fire_from_autofire,fire_from_fire;
+	Uint8 hat;
+	unsigned int trig;
+	unsigned int last_trig;
+	/*updating x and y axis*/
+	x = SDL_JoystickGetAxis(sdl_gamepads[gamepadNumber], 0);
+	y = SDL_JoystickGetAxis(sdl_gamepads[gamepadNumber], 1);
 
-	int xminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
-	int xmaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
-	int yminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
-	int ymaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
+	xminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
+	xmaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
+	yminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
+	ymaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
 	gamepads_sdl_actual_state[gamepadNumber].x = x > xmaxlimit ? 1 : (x < xminlimit ? -1 : 0);
 	gamepads_sdl_actual_state[gamepadNumber].y = y > ymaxlimit ? 1 : (y < yminlimit ? -1 : 0);
-	//updating x and y for hats
-	Uint8 hat = SDL_JoystickGetHat(sdl_gamepads[gamepadNumber], 0);
+	/*updating x and y for hats*/
+	hat = SDL_JoystickGetHat(sdl_gamepads[gamepadNumber], 0);
 	gamepads_sdl_actual_state[gamepadNumber].hx =  ((hat & SDL_HAT_LEFT) == SDL_HAT_LEFT) ? -1 : 0;
 	gamepads_sdl_actual_state[gamepadNumber].hx += ((hat & SDL_HAT_RIGHT) == SDL_HAT_RIGHT) ? 1 : 0;
 	gamepads_sdl_actual_state[gamepadNumber].hy =  ((hat & SDL_HAT_DOWN) == SDL_HAT_DOWN) ? 1 : 0;
 	gamepads_sdl_actual_state[gamepadNumber].hy += ((hat & SDL_HAT_UP) == SDL_HAT_UP) ? -1 : 0;
 	
-	//updating buttons
-	unsigned int trig = 0;
+	/*updating buttons*/
+	trig = 0;
 	for (i = 0; i < gamepads_max_buttons[gamepadNumber]; i++) {
 		if (SDL_JoystickGetButton(sdl_gamepads[gamepadNumber], i)) {
 			trig |= 1 << i;
@@ -575,16 +586,16 @@ static void GamePads_UpdatePad(int gamepadNumber)
 		trig = trig << 16;
 	}
 	gamepads_sdl_actual_state[gamepadNumber].buttons = trig;
-	unsigned int last_trig = gamepads_sdl_last_state[gamepadNumber].buttons;
+	last_trig = gamepads_sdl_last_state[gamepadNumber].buttons;
 	if (!UI_is_active) {
-		int autofire = FALSE;
-		int fire = FALSE;
+		autofire = FALSE;
+		fire = FALSE;
 		for(i = 0; i < 32; i++) {
-			int mask = 1 << i;
-			int trigFunc = GamePads_GetFunctionForButton(gamepadNumber, i);
-			int handled = TRUE;
-			int changed = (trig & mask) != (last_trig & mask);
-			int pressed = (trig & mask) != 0;
+			mask = 1 << i;
+			trigFunc = GamePads_GetFunctionForButton(gamepadNumber, i);
+			handled = TRUE;
+			changed = (trig & mask) != (last_trig & mask);
+			pressed = (trig & mask) != 0;
 			switch (trigFunc) {
 				case FNPAD_START_HOLD:
 					if (pressed)
@@ -622,7 +633,7 @@ static void GamePads_UpdatePad(int gamepadNumber)
 					handled = FALSE;
 			}
 			
-			//updating last buttons to match actual buttons
+			/*updating last buttons to match actual buttons*/
 			if (handled && changed)
 			{
 				if (pressed) {
@@ -633,30 +644,29 @@ static void GamePads_UpdatePad(int gamepadNumber)
 				}
 			}
 		}
-		//autofire and fire handling
+		/*autofire and fire handling*/
 		gamepads_fire_state[gamepadNumber].autofire_actual_on = gamepads_fire_state[gamepadNumber].autofire_toggle_on != autofire;
 		if (!gamepads_fire_state[gamepadNumber].autofire_last_on && gamepads_fire_state[gamepadNumber].autofire_actual_on) {
 			gamepads_fire_state[gamepadNumber].autofire_phase = 0;
 		}
-		int fire_from_autofire = gamepads_fire_state[gamepadNumber].autofire_actual_on && (gamepads_fire_state[gamepadNumber].autofire_phase < gamepad_configuration[gamepadNumber].autofire_freq);
+		fire_from_autofire = gamepads_fire_state[gamepadNumber].autofire_actual_on && (gamepads_fire_state[gamepadNumber].autofire_phase < gamepad_configuration[gamepadNumber].autofire_freq);
 		gamepads_fire_state[gamepadNumber].autofire_last_on = gamepads_fire_state[gamepadNumber].autofire_actual_on;
 		gamepads_fire_state[gamepadNumber].autofire_phase += 1;
 		if (gamepads_fire_state[gamepadNumber].autofire_phase >= (gamepad_configuration[gamepadNumber].autofire_freq * 2)) {
 			gamepads_fire_state[gamepadNumber].autofire_phase = 0;
 		}
-		int fire_from_fire = gamepads_fire_state[gamepadNumber].fire_toggle_on != fire;
+		fire_from_fire = gamepads_fire_state[gamepadNumber].fire_toggle_on != fire;
 		gamepads_fire_state[gamepadNumber].fire = fire_from_autofire != fire_from_fire;
 	}
 }
 
-static void GamePads_Update()
+static void GamePads_Update(void)
 {
 	int i;
 	if (! gamepads_found)
 		return;
 
 	if (!gamepad_masks_valid) {
-		int i;
 		for(i = 0; i < MAX_GAMEPADS; i++) {
 			GamePads_DetermineMasks(i);
 		}
@@ -669,12 +679,12 @@ static void GamePads_Update()
 	}
 }
 
-//****************************************************************************
-//GamePads_AtariKeys
-//Simulates atari keys/functions by pads.
-//returns atari key/function.
-//****************************************************************************
-//function converts button function to atari key
+/******************************************************************************/
+/*GamePads_AtariKeys*/
+/*Simulates atari keys/functions by pads.*/
+/*returns atari key/function.*/
+/******************************************************************************/
+/*function converts button function to atari key*/
 static int GamePads_AtariKeysPressRelease(int buttonFunc, int pressed)
 {
 	switch (buttonFunc) {
@@ -683,7 +693,7 @@ static int GamePads_AtariKeysPressRelease(int buttonFunc, int pressed)
 	return AKEY_NONE;
 }
 
-//function converts button function to atari key
+/*function converts button function to atari key*/
 static int GamePads_AtariKeysPress(int buttonFunc)
 {
 	switch (buttonFunc) {
@@ -708,11 +718,11 @@ static int GamePads_AtariKeysPress(int buttonFunc)
 		return buttonFunc - FNPAD_CODE_;
 	}
 	return AKEY_NONE;
-			// result = StateSav_SaveAtariState(state_filename, "wb", TRUE);
-		// if (!result)
-			// CantSave(state_filename);
-		// if (!StateSav_ReadAtariState(state_filename, "rb"))
-			// CantLoad(state_filename);
+			/* result = StateSav_SaveAtariState(state_filename, "wb", TRUE);*/
+		/* if (!result)*/
+			/* CantSave(state_filename);*/
+		/* if (!StateSav_ReadAtariState(state_filename, "rb"))*/
+			/* CantLoad(state_filename);*/
 }
 
 static int GamePads_AtariKeysFromJoy(int gamepadNumber)
@@ -767,7 +777,8 @@ static int GamePads_AtariKeysFromHat(int gamepadNumber)
 
 static int GamePads_AtariKeysByPad(int gamepadNumber)
 {
-	int atkey = AKEY_NONE;
+	unsigned int last_buttons,buttons,mask;
+	int atkey,i,ui_button,pressed;
 	atkey = GamePads_AtariKeysFromJoy(gamepadNumber);
 	if (atkey != AKEY_NONE) {
 		return atkey;
@@ -777,16 +788,14 @@ static int GamePads_AtariKeysByPad(int gamepadNumber)
 		return atkey;
 	}
 	
-	unsigned int last_buttons = gamepads_sdl_last_state[gamepadNumber].buttons;
-	unsigned int buttons = gamepads_sdl_actual_state[gamepadNumber].buttons;
-	unsigned int mask;
-	int i;
-	int ui_button;
+	last_buttons = gamepads_sdl_last_state[gamepadNumber].buttons;
+	buttons = gamepads_sdl_actual_state[gamepadNumber].buttons;
+	mask = 0;
 	for(i = 0; i < 32; i++) {
 		mask = 1 << i;
 		ui_button = FALSE;
 		if ((last_buttons & mask) != (buttons & mask)) {
-			int pressed  = (buttons & mask) != 0;
+			pressed  = (buttons & mask) != 0;
 			if (UI_is_active && (gamepad_configuration[gamepadNumber].use_in_menus || gamepad_configuration[gamepadNumber].use_hat_in_menus)) {
 				if (i == gamepad_configuration[gamepadNumber].in_menus_back_button) {
 					ui_button = TRUE;
@@ -804,24 +813,24 @@ static int GamePads_AtariKeysByPad(int gamepadNumber)
 			if (atkey == AKEY_NONE && !ui_button && (gamepad_atari_key_mask[gamepadNumber] & mask)) {
 				int button_func = GamePads_GetFunctionForButton(gamepadNumber, i);
 				if (button_func >= 512 && button_func < 1024) {
-					//press only functions
+					/*press only functions*/
 					if (pressed) {
 						atkey = GamePads_AtariKeysPress(button_func);
 					}
 				}
 				else {
-					//press/release functions
+					/*press/release functions*/
 					atkey = GamePads_AtariKeysPressRelease(button_func, pressed);
 				}
 			}
-			//updating last buttons to match actual buttons
+			/*updating last buttons to match actual buttons*/
 			if (pressed) {
 				gamepads_sdl_last_state[gamepadNumber].buttons |= mask;
 			}
 			else {
 				gamepads_sdl_last_state[gamepadNumber].buttons &= ~mask;
 			}
-			//returning atari key if found
+			/*returning atari key if found*/
 			if (atkey != AKEY_NONE) {
 				return atkey;
 			}
@@ -832,8 +841,8 @@ static int GamePads_AtariKeysByPad(int gamepadNumber)
 
 static int GamePads_AtariKeys(void)
 {
-	int atkey = AKEY_NONE;
-	int i;
+	int atkey,i;
+	atkey = AKEY_NONE;
 	for(i = 0; i < gamepads_found; i++) {
 		atkey = GamePads_AtariKeysByPad(i);
 		if (atkey != AKEY_NONE) {
@@ -843,14 +852,15 @@ static int GamePads_AtariKeys(void)
 	return AKEY_NONE;
 }
 
-//****************************************************************************
-//GamePads_AtariJoyFromGamePadJoy
-//Simulates atari joystick by pads joy.
-//returns atari stick state.
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_AtariJoyFromGamePadJoy*/
+/*Simulates atari joystick by pads joy.*/
+/*returns atari stick state.*/
+/******************************************************************************/
 static int GamePads_AtariJoyFromGamePadJoy(int joyNumber)
 {
-	int ret = INPUT_STICK_CENTRE;
+	int ret;
+	ret = INPUT_STICK_CENTRE;
 	if (gamepads_sdl_actual_state[joyNumber].x == -1) ret &= INPUT_STICK_LEFT;
 	if (gamepads_sdl_actual_state[joyNumber].x == 1) ret &= INPUT_STICK_RIGHT;
 	if (gamepads_sdl_actual_state[joyNumber].y == -1) ret &= INPUT_STICK_FORWARD;
@@ -858,14 +868,15 @@ static int GamePads_AtariJoyFromGamePadJoy(int joyNumber)
 	return ret;	
 }
 
-//****************************************************************************
-//GamePads_AtariJoyFromGamePadHat
-//Simulates atari joystick by pads hat.
-//returns atari stick state.
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_AtariJoyFromGamePadHat*/
+/*Simulates atari joystick by pads hat.*/
+/*returns atari stick state.*/
+/******************************************************************************/
 static int GamePads_AtariJoyFromGamePadHat(int joyNumber)
 {
-	int ret = INPUT_STICK_CENTRE;
+	int ret;
+	ret = INPUT_STICK_CENTRE;
 	if (gamepads_sdl_actual_state[joyNumber].hx == -1) ret &= INPUT_STICK_LEFT;
 	if (gamepads_sdl_actual_state[joyNumber].hx == 1) ret &= INPUT_STICK_RIGHT;
 	if (gamepads_sdl_actual_state[joyNumber].hy == -1) ret &= INPUT_STICK_FORWARD;
@@ -873,14 +884,15 @@ static int GamePads_AtariJoyFromGamePadHat(int joyNumber)
 	return ret;	
 }
 
-//****************************************************************************
-//GamePads_AtariJoy
-//Simulates atari joystick by pads.
-//returns atari stick state.
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_AtariJoy*/
+/*Simulates atari joystick by pads.*/
+/*returns atari stick state.*/
+/******************************************************************************/
 static int GamePads_AtariJoy(int joyNumber)
 {
-	int atari_stick = INPUT_STICK_CENTRE;
+	int atari_stick;
+	atari_stick = INPUT_STICK_CENTRE;
 	if (gamepad_configuration[joyNumber].use_as_stick) {
 		atari_stick &= GamePads_AtariJoyFromGamePadJoy(joyNumber);
 	}
@@ -890,52 +902,52 @@ static int GamePads_AtariJoy(int joyNumber)
 	return atari_stick;
 }
 
-//****************************************************************************
-//GamePads_AtariKeys
-//Simulates atari trigger by pads.
-//returns 0 if trigger is pressed.
-//****************************************************************************
+/******************************************************************************/
+/*GamePads_AtariKeys*/
+/*Simulates atari trigger by pads.*/
+/*returns 0 if trigger is pressed.*/
+/******************************************************************************/
 static int GamePads_AtariTrigger(int joyNumber)
 {
 	return !gamepads_fire_state[joyNumber].fire;
 }
 
-//old function
-// static void update_SDL_joysticks(void)
-// {
-	// int joy;
+/*old function*/
+/* static void update_SDL_joysticks(void)*/
+/* {*/
+	/* int joy;*/
 
-	// if (! gamepads_found)
-		// return;
+	/* if (! gamepads_found)*/
+		/* return;*/
 
-	// SDL_JoystickUpdate();
+	/* SDL_JoystickUpdate();*/
 
-	// for(joy = 0; joy < gamepads_found; joy++) {
-		// int i;
+	/* for(joy = 0; joy < gamepads_found; joy++) {*/
+		/* int i;*/
 
-		// sdl_js_state[joy].port = INPUT_STICK_CENTRE;
+		/* sdl_js_state[joy].port = INPUT_STICK_CENTRE;*/
 		
-		// if (real_js_configs[joy].use_as_stick) {
-			// sdl_js_state[joy].port &= get_SDL_joystick_state(joystick[joy], joy);
-		// }
-		// if (real_js_configs[joy].use_hat_as_stick) {
-			// sdl_js_state[joy].port &= get_SDL_joystick_hat_state(joystick[joy]);
-		// }
+		/* if (real_js_configs[joy].use_as_stick) {*/
+			/* sdl_js_state[joy].port &= get_SDL_joystick_state(joystick[joy], joy);*/
+		/* }*/
+		/* if (real_js_configs[joy].use_hat_as_stick) {*/
+			/* sdl_js_state[joy].port &= get_SDL_joystick_hat_state(joystick[joy]);*/
+		/* }*/
 
-		// sdl_js_state[joy].trig = 0;
-		// for (i = 0; i < joystick_nbuttons[joy]; i++) {
-			// if (SDL_JoystickGetButton(joystick[joy], i)) {
-				// sdl_js_state[joy].trig |= 1 << i;
-			// }
-		// }
-	// }
-// }
+		/* sdl_js_state[joy].trig = 0;*/
+		/* for (i = 0; i < joystick_nbuttons[joy]; i++) {*/
+			/* if (SDL_JoystickGetButton(joystick[joy], i)) {*/
+				/* sdl_js_state[joy].trig |= 1 << i;*/
+			/* }*/
+		/* }*/
+	/* }*/
+/* }*/
 
-//---------------------------------------------------------------------------------------------------------------------
-//Keyboard support
-//---------------------------------------------------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*Keyboard support*/
+/*---------------------------------------------------------------------------------------------------------------------*/
 
-//consol keys from keyboard
+/*consol keys from keyboard*/
 static int input_key_consol_from_keys;
 
 /* keyboard */
@@ -990,7 +1002,7 @@ static int SDLKeyBind(int *retval, char *sdlKeySymIntStr)
 /* For getting sdl key map out of the config...
    Authors: B.Schreiber, A.Martinez
    cleaned up by joy */
-int Keyboard_ReadConfig(char *option, char *parameters)
+static int Keyboard_ReadConfig(char *option, char *parameters)
 {
 	static int was_config_initialized = FALSE;
     
@@ -1026,14 +1038,14 @@ int Keyboard_ReadConfig(char *option, char *parameters)
 		return SDLKeyBind(&KBD_STICK_1_UP, parameters);
 	else if (strcmp(option, "SDL_JOY_1_TRIGGER") == 0)
 		return SDLKeyBind(&KBD_TRIG_1, parameters);
-	// else if (strcmp(option, "SDL_JOY_0_USE_HAT") == 0)
-		// return set_real_js_use_hat(0,parameters);
-	// else if (strcmp(option, "SDL_JOY_1_USE_HAT") == 0)
-		// return set_real_js_use_hat(1,parameters);
-	// else if (strcmp(option, "SDL_JOY_2_USE_HAT") == 0)
-		// return set_real_js_use_hat(2,parameters);
-	// else if (strcmp(option, "SDL_JOY_3_USE_HAT") == 0)
-		// return set_real_js_use_hat(3,parameters);
+	/* else if (strcmp(option, "SDL_JOY_0_USE_HAT") == 0)*/
+		/* return set_real_js_use_hat(0,parameters);*/
+	/* else if (strcmp(option, "SDL_JOY_1_USE_HAT") == 0)*/
+		/* return set_real_js_use_hat(1,parameters);*/
+	/* else if (strcmp(option, "SDL_JOY_2_USE_HAT") == 0)*/
+		/* return set_real_js_use_hat(2,parameters);*/
+	/* else if (strcmp(option, "SDL_JOY_3_USE_HAT") == 0)*/
+		/* return set_real_js_use_hat(3,parameters);*/
 	else if (strcmp(option, "SDL_UI_KEY") == 0)
 		return SDLKeyBind(&KBD_UI, parameters);
 	else if (strcmp(option, "SDL_OPTION_KEY") == 0)
@@ -1063,7 +1075,7 @@ int Keyboard_ReadConfig(char *option, char *parameters)
 /* Save the keybindings and the keybindapp options to the config file...
    Authors: B.Schreiber, A.Martinez
    cleaned up by joy */
-void Keyboard_WriteConfig(FILE *fp)
+static void Keyboard_WriteConfig(FILE *fp)
 {
 	fprintf(fp, "SDL_JOY_0_ENABLED=%d\n", PLATFORM_kbd_joy_0_enabled);
 	fprintf(fp, "SDL_JOY_0_LEFT=%d\n", KBD_STICK_0_LEFT);
@@ -1177,12 +1189,12 @@ static Uint32 ResizeDelayCallback(Uint32 interval, void *param)
 static unsigned char *atari_screen_backup;
 #endif
 
-//****************************************************************************
-//Keyboard_AtariKeys
-//Simulates atari keys/functions by keyboard.
-//returns atari key/function.
-//****************************************************************************
-int Keyboard_AtariKeys(void)
+/******************************************************************************/
+/*Keyboard_AtariKeys*/
+/*Simulates atari keys/functions by keyboard.*/
+/*returns atari key/function.*/
+/******************************************************************************/
+static int Keyboard_AtariKeys(void)
 {
 	int shiftctrl = 0;
 	SDL_Event event;
@@ -2039,9 +2051,9 @@ int Keyboard_AtariKeys(void)
 	return AKEY_NONE;
 }
 
-//---------------------------------------------------------------------------------------------------------------------
-//Mouse support
-//---------------------------------------------------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*Mouse support*/
+/*---------------------------------------------------------------------------------------------------------------------*/
 
 void SDL_INPUT_Mouse(void)
 {
@@ -2069,36 +2081,39 @@ void SDL_INPUT_Mouse(void)
 		((buttons & SDL_BUTTON(2)) ? 4 : 0); /* Middle button */
 }
 
-//---------------------------------------------------------------------------------------------------------------------
-//Global functions
-//---------------------------------------------------------------------------------------------------------------------
+/*---------------------------------------------------------------------------------------------------------------------*/
+/*Global functions*/
+/*---------------------------------------------------------------------------------------------------------------------*/
 
-//****************************************************************************
-//PLATFORM_Keyboard
-//Called externally to acquire atari key presses and atari functions
-//returns atari key/function
-//****************************************************************************
+/******************************************************************************/
+/*PLATFORM_Keyboard*/
+/*Called externally to acquire atari key presses and atari functions*/
+/*returns atari key/function*/
+/******************************************************************************/
 int PLATFORM_Keyboard(void)
 {
+	int key_code;
+	
 	GamePads_Update();
-	//getting functions from keyboard presses
-	int key_code = Keyboard_AtariKeys();
-	//if none then getting functions from game pads
+	/*getting functions from keyboard presses*/
+	key_code = Keyboard_AtariKeys();
+	/*if none then getting functions from game pads*/
 	if (key_code == AKEY_NONE)
 		key_code = GamePads_AtariKeys();
-	//merging consol key states
+	/*merging consol key states*/
 	INPUT_key_consol = input_key_consol_from_keys;
 	INPUT_key_consol &= gamepads_consol_state;
 	return key_code;
 }
 
-//****************************************************************************
-//SDL_INPUT_ReadConfig
-//Called externally to load config, one call for every line of configuration file
-//****************************************************************************
+/******************************************************************************/
+/*SDL_INPUT_ReadConfig*/
+/*Called externally to load config, one call for every line of configuration file*/
+/******************************************************************************/
 int SDL_INPUT_ReadConfig(char *option, char *parameters)
 {
-	int ret = Keyboard_ReadConfig(option, parameters);
+	int ret;
+	ret = Keyboard_ReadConfig(option, parameters);
 	if (ret) {
 		return TRUE;
 	}
@@ -2109,22 +2124,22 @@ int SDL_INPUT_ReadConfig(char *option, char *parameters)
 	return FALSE;
 }
 
-//****************************************************************************
-//SDL_INPUT_WriteConfig
-//Called externally to write config
-//****************************************************************************
+/******************************************************************************/
+/*SDL_INPUT_WriteConfig*/
+/*Called externally to write config*/
+/******************************************************************************/
 void SDL_INPUT_WriteConfig(FILE *fp)
 {
 	Keyboard_WriteConfig(fp);
 	GamePads_Write_Config(fp);
 }
 
-//****************************************************************************
-//SDL_INPUT_Initialise
-//Called to initialize whole input system
-//argc, argv - arguments passed from command line
-//returns TRUE if initialization completed successfully
-//****************************************************************************
+/******************************************************************************/
+/*SDL_INPUT_Initialise*/
+/*Called to initialize whole input system*/
+/*argc, argv - arguments passed from command line*/
+/*returns TRUE if initialization completed successfully*/
+/******************************************************************************/
 
 int SDL_INPUT_Initialise(int *argc, char *argv[])
 {
@@ -2152,19 +2167,19 @@ int SDL_INPUT_Initialise(int *argc, char *argv[])
 		else if (strcmp(argv[i], "-grabmouse") == 0) {
 			grab_mouse = TRUE;
 		}
-//TODO: add support for better aguments for pad and pad configuration ui
-                // else if (strcmp(argv[i], "-joy0hat") == 0) {
-                        // real_js_configs[0].use_hat = TRUE;
-                // }
-                // else if (strcmp(argv[i], "-joy1hat") == 0) {
-                        // real_js_configs[1].use_hat = TRUE;
-                // }
-                // else if (strcmp(argv[i], "-joy2hat") == 0) {
-                        // real_js_configs[2].use_hat = TRUE;
-                // }
-                // else if (strcmp(argv[i], "-joy3hat") == 0) {
-                        // real_js_configs[3].use_hat = TRUE;
-                // }
+/*TODO: add support for better aguments for pad and pad configuration ui*/
+                /* else if (strcmp(argv[i], "-joy0hat") == 0) {*/
+                        /* real_js_configs[0].use_hat = TRUE;*/
+                /* }*/
+                /* else if (strcmp(argv[i], "-joy1hat") == 0) {*/
+                        /* real_js_configs[1].use_hat = TRUE;*/
+                /* }*/
+                /* else if (strcmp(argv[i], "-joy2hat") == 0) {*/
+                        /* real_js_configs[2].use_hat = TRUE;*/
+                /* }*/
+                /* else if (strcmp(argv[i], "-joy3hat") == 0) {*/
+                        /* real_js_configs[3].use_hat = TRUE;*/
+                /* }*/
 #ifdef LPTJOY
 		else if (strcmp(argv[i], "-joy0") == 0) {
 			if (i_a) {
@@ -2195,10 +2210,10 @@ int SDL_INPUT_Initialise(int *argc, char *argv[])
 			if (strcmp(argv[i], "-help") == 0) {
 				help_only = TRUE;
 				Log_print("\t-nojoystick      Disable joystick");
-				// Log_print("\t-joy0hat         Use hat of joystick 0");
-				// Log_print("\t-joy1hat         Use hat of joystick 1");
-				// Log_print("\t-joy2hat         Use hat of joystick 2");
-				// Log_print("\t-joy3hat         Use hat of joystick 3");
+				/* Log_print("\t-joy0hat         Use hat of joystick 0");*/
+				/* Log_print("\t-joy1hat         Use hat of joystick 1");*/
+				/* Log_print("\t-joy2hat         Use hat of joystick 2");*/
+				/* Log_print("\t-joy3hat         Use hat of joystick 3");*/
 #ifdef LPTJOY
 				Log_print("\t-joy0 <pathname> Select LPTjoy0 device");
 				Log_print("\t-joy1 <pathname> Select LPTjoy1 device");
@@ -2236,7 +2251,7 @@ int SDL_INPUT_Initialise(int *argc, char *argv[])
 				perror(lpt_joy1);
 		}
 #endif /* LPTJOY */
-		//initializing gamepads
+		/*initializing gamepads*/
 		GamePads_Init(fd_joystick0 == -1, fd_joystick1 == -1);
 	}
 
@@ -2353,17 +2368,17 @@ static void get_platform_PORT(Uint8 *s0, Uint8 *s1, Uint8 *s2, Uint8 *s3)
 	if (fd_joystick0 != -1)
 		*s0 &= get_LPT_joystick_state(fd_joystick0);
 	else if (sdl_gamepads[0] != NULL)
-		//*s0 &= sdl_js_state[0].port;
+		/**s0 &= sdl_js_state[0].port;*/
 		*s0 &= GamePads_AtariJoy(0);
 
 	if (fd_joystick1 != -1)
 		*s1 &= get_LPT_joystick_state(fd_joystick1);
 	else if (sdl_gamepads[1] != NULL)
-		//*s1 &= sdl_js_state[1].port;
+		/**s1 &= sdl_js_state[1].port;*/
 		*s1 &= GamePads_AtariJoy(1);
 	
-	// *s2 = sdl_js_state[2].port;
-	// *s3 = sdl_js_state[3].port;
+	/* *s2 = sdl_js_state[2].port;*/
+	/* *s3 = sdl_js_state[3].port;*/
 	*s2 = GamePads_AtariJoy(2);
 	*s3 = GamePads_AtariJoy(3);
 }
@@ -2397,19 +2412,19 @@ static void get_platform_TRIG(Uint8 *t0, Uint8 *t1, Uint8 *t2, Uint8 *t3)
 		*t0 &= ((status & 8) > 0);
 #endif /* LPTJOY */
 	}
-	// else if (joystick[0] != NULL) {
-		// trig0 = 1;
-// #ifdef USE_UI_BASIC_ONSCREEN_KEYBOARD
-		// if (OSK_enabled) {
-			// if (sdl_js_state[0].trig & (1 << OSK_BUTTON_TRIGGER))
-				// trig0 = 0;
-		// }
-		// else
-// #endif
-			// if (sdl_js_state[0].trig)
-				// trig0 = 0;
-		// *t0 &= trig0;
-	// }
+	/* else if (joystick[0] != NULL) {*/
+		/* trig0 = 1;*/
+/* #ifdef USE_UI_BASIC_ONSCREEN_KEYBOARD*/
+		/* if (OSK_enabled) {*/
+			/* if (sdl_js_state[0].trig & (1 << OSK_BUTTON_TRIGGER))*/
+				/* trig0 = 0;*/
+		/* }*/
+		/* else*/
+/* #endif*/
+			/* if (sdl_js_state[0].trig)*/
+				/* trig0 = 0;*/
+		/* *t0 &= trig0;*/
+	/* }*/
 	
 	*t0 &= GamePads_AtariTrigger(0);
 
@@ -2420,16 +2435,16 @@ static void get_platform_TRIG(Uint8 *t0, Uint8 *t1, Uint8 *t2, Uint8 *t3)
 		*t1 &= ((status & 8) > 0);
 #endif /* LPTJOY */
 	}
-	// else if (joystick[1] != NULL) {
-		// trig1 = 1;
-		// if (sdl_js_state[1].trig)
-			// trig1 = 0;
-		// *t1 &= trig1;
-	// }
+	/* else if (joystick[1] != NULL) {*/
+		/* trig1 = 1;*/
+		/* if (sdl_js_state[1].trig)*/
+			/* trig1 = 0;*/
+		/* *t1 &= trig1;*/
+	/* }*/
 	*t1 &= GamePads_AtariTrigger(1);
 
-	// *t2 = sdl_js_state[2].trig ? 0 : 1;
-	// *t3 = sdl_js_state[3].trig ? 0 : 1;
+	/* *t2 = sdl_js_state[2].trig ? 0 : 1;*/
+	/* *t3 = sdl_js_state[3].trig ? 0 : 1;*/
 	*t2 = GamePads_AtariTrigger(2);
 	*t3 = GamePads_AtariTrigger(3);
 }
@@ -2438,7 +2453,7 @@ int PLATFORM_PORT(int num)
 {
 #ifndef DONT_DISPLAY
 	UBYTE a, b, c, d;
-	//update_SDL_joysticks();
+	/*update_SDL_joysticks();*/
 	get_platform_PORT(&a, &b, &c, &d);
 	if (num == 0) {
 		return (b << 4) | (a & 0x0f);
@@ -2493,7 +2508,7 @@ static int SDL_controller_kb1(void)
 
 	if (! joysticks_found) return(AKEY_NONE);  /* no controller present */
 
-	//update_SDL_joysticks();
+	/*update_SDL_joysticks();*/
 
 	if (!UI_is_active && (state->trig & (1 << OSK_BUTTON_UI))) {
 		return(AKEY_UI);
@@ -2504,7 +2519,7 @@ static int SDL_controller_kb1(void)
 	/* provide keyboard emulation to enter file name */
 	if (UI_is_active && !UI_BASIC_in_kbui && (state->trig & (1 << OSK_BUTTON_KEYB))) {
 		int keycode;
-		//update_SDL_joysticks();
+		/*update_SDL_joysticks();*/
 		UI_BASIC_in_kbui = TRUE;
 		memcpy(atari_screen_backup, Screen_atari, Screen_HEIGHT * Screen_WIDTH);
 		keycode = UI_BASIC_OnScreenKeyboard(NULL, -1);
