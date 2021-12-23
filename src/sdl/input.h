@@ -7,10 +7,14 @@
 
 /*Configuration of a real SDL joystick*/
 typedef struct SDL_INPUT_RealJSConfig_t {
+	/*1 means that joystick input is radial, 0 - square*/
+	int radial;
 	/*value that will cause sending stick event to atari */
 	int deadzone;
 	/*difference between enabled side disabling and disabled side enabling*/
 	float tolerance;
+	/*difference between enabled side disabling and disabled side enabling for angles in radial joystick*/
+	float radial_tolerance;
 	/*true if joystick should be used as atari stick*/
 	int use_as_stick;
 	/*true if joystick hat should be used as atari stick*/

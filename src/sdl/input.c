@@ -177,7 +177,7 @@ typedef struct gamepads_fire_state_t {
 /*maximum number of supported buttons per gamepad*/
 #define MAX_GAMEPAD_BUTTONS		16
 /*default deadzone size for gamepads*/
-#define DEFAULT_DEADZONE 10000
+#define DEFAULT_DEADZONE 15000
 /*gamepads detected by SDL system*/
 static SDL_Joystick *sdl_gamepads[MAX_GAMEPADS] = { NULL, NULL, NULL, NULL };
 /*tells if config was reseting*/
@@ -322,8 +322,10 @@ static void GamePads_Reset_Config(void)
     int i;
 	int j;
     for (i = 0; i < MAX_GAMEPADS; i++) {
+		gamepad_configuration[i].radial = 1;
 		gamepad_configuration[i].deadzone = 15000;
 		gamepad_configuration[i].tolerance = 0.1;
+		gamepad_configuration[i].radial_tolerance = 0.1;
 		gamepad_configuration[i].use_as_stick = TRUE;
 		gamepad_configuration[i].use_hat_as_stick = TRUE;
 		gamepad_configuration[i].use_in_menus = FALSE;
@@ -355,8 +357,10 @@ static void GamePads_Write_Config(FILE* fp)
 		gamepad_config_reset = TRUE;
 	}
     for (i = 0; i < MAX_GAMEPADS; i++) {
+        fprintf(fp, "SDL_PAD_%d_JOY_RADIAL=%d\n", i, gamepad_configuration[i].radial);
         fprintf(fp, "SDL_PAD_%d_JOY_DEADZONE=%d\n", i, gamepad_configuration[i].deadzone);
         fprintf(fp, "SDL_PAD_%d_JOY_TOLERANCE=%f\n", i, gamepad_configuration[i].tolerance);
+        fprintf(fp, "SDL_PAD_%d_JOY_RADIAL_TOLERANCE=%f\n", i, gamepad_configuration[i].radial_tolerance);
         fprintf(fp, "SDL_PAD_%d_JOY_USE_AS_STICK=%d\n", i, gamepad_configuration[i].use_as_stick);
         fprintf(fp, "SDL_PAD_%d_HAT_USE_AS_STICK=%d\n", i, gamepad_configuration[i].use_hat_as_stick);
         fprintf(fp, "SDL_PAD_%d_JOY_USE_IN_MENUS=%d\n", i, gamepad_configuration[i].use_in_menus);
@@ -410,13 +414,22 @@ static void GamePads_Read_Config(char *option, char *parameters)
 		return;
 	}
 	option = &option[len];
-	if (strcmp(option, "_JOY_DEADZONE") == 0) {
+	if (strcmp(option, "_JOY_RADIAL") == 0) {
+		gamepad_configuration[joy_number].radial = Util_sscanbool(parameters);
+		return;
+	}
+	else if (strcmp(option, "_JOY_DEADZONE") == 0) {
 		gamepad_configuration[joy_number].deadzone = Util_sscandec(parameters);
 		return;
 	}
 	else if (strcmp(option, "_JOY_TOLERANCE") == 0) {
 		Util_sscandouble(parameters, &number);
 		gamepad_configuration[joy_number].tolerance = number;
+		return;
+	}
+	else if (strcmp(option, "_JOY_RADIAL_TOLERANCE") == 0) {
+		Util_sscandouble(parameters, &number);
+		gamepad_configuration[joy_number].radial_tolerance = number;
 		return;
 	}
 	else if (strcmp(option, "_JOY_USE_AS_STICK") == 0) {
@@ -556,16 +569,113 @@ static void GamePads_UpdatePad(int gamepadNumber)
 	Uint8 hat;
 	unsigned int trig;
 	unsigned int last_trig;
+	int last_crook, last_angle, actual_angle, max_angle, min_angle, recalc;
+	double angle_fine, dist, xn, yn;
+	
 	/*updating x and y axis*/
 	x = SDL_JoystickGetAxis(sdl_gamepads[gamepadNumber], 0);
 	y = SDL_JoystickGetAxis(sdl_gamepads[gamepadNumber], 1);
 
-	xminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
-	xmaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
-	yminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
-	ymaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
-	gamepads_sdl_actual_state[gamepadNumber].x = x > xmaxlimit ? 1 : (x < xminlimit ? -1 : 0);
-	gamepads_sdl_actual_state[gamepadNumber].y = y > ymaxlimit ? 1 : (y < yminlimit ? -1 : 0);
+	if (gamepad_configuration[gamepadNumber].radial) {
+		//calculating actual joy position for radial
+		//checking trigonometric coordinates for joy
+		angle_fine = atan2(y, x);
+		xn = ((double)x) / gamepad_configuration[gamepadNumber].deadzone;
+		yn = ((double)y) / gamepad_configuration[gamepadNumber].deadzone;
+		dist = xn * xn + yn * yn;
+		//checking if joy is out of actually triggered zone
+		recalc = FALSE;
+		last_crook = gamepads_sdl_last_state[gamepadNumber].x != 0 || gamepads_sdl_last_state[gamepadNumber].y != 0;
+		if (last_crook) {
+			if (dist < (1.0 - gamepad_configuration[gamepadNumber].tolerance) * (1.0 - gamepad_configuration[gamepadNumber].tolerance)) {
+				//recalc because joy was out of center and now is in center
+				recalc = TRUE;
+			}
+			else {
+				if (gamepads_sdl_last_state[gamepadNumber].x == -1) {
+					last_angle = 4 - gamepads_sdl_last_state[gamepadNumber].y;
+				}
+				else if (gamepads_sdl_last_state[gamepadNumber].x == 0) {
+					last_angle = gamepads_sdl_last_state[gamepadNumber].y * 2;
+				}
+				else {
+					last_angle = gamepads_sdl_last_state[gamepadNumber].y;
+				}
+				if (last_angle == 5) {
+					last_angle = -3;
+				}
+				min_angle = last_angle * M_PI / 4 - M_PI / 8 * (1 + gamepad_configuration[gamepadNumber].radial_tolerance / 2);
+				max_angle = last_angle * M_PI / 4 + M_PI / 8 * (1 + gamepad_configuration[gamepadNumber].radial_tolerance / 2);
+				if (max_angle > M_PI) {
+					max_angle -= M_PI * 2;
+				}
+				if (angle_fine > max_angle || angle_fine < min_angle) {
+					//recalc because joy was off center in specific region and now is in another
+					recalc = TRUE;
+				}
+			}
+		}
+		else {
+			if (dist > (1.0 + gamepad_configuration[gamepadNumber].tolerance) * (1.0 + gamepad_configuration[gamepadNumber].tolerance)) {
+				//recalc because joy was in center and now is off center
+				recalc = TRUE;
+			}
+		}
+		if (recalc) {
+			//recalculating zone that joy is in
+			if (dist < 1.0) {
+				gamepads_sdl_actual_state[gamepadNumber].x = 0;
+				gamepads_sdl_actual_state[gamepadNumber].y = 0;
+			}
+			else {
+				actual_angle = round(angle_fine / (M_PI / 4));
+				switch (actual_angle) {
+					case -4:
+					case 4:
+						gamepads_sdl_actual_state[gamepadNumber].x = -1;
+						gamepads_sdl_actual_state[gamepadNumber].y = 0;
+						break;
+					case -3:
+						gamepads_sdl_actual_state[gamepadNumber].x = -1;
+						gamepads_sdl_actual_state[gamepadNumber].y = -1;
+						break;
+					case -2:
+						gamepads_sdl_actual_state[gamepadNumber].x = 0;
+						gamepads_sdl_actual_state[gamepadNumber].y = -1;
+						break;
+					case -1:
+						gamepads_sdl_actual_state[gamepadNumber].x = 1;
+						gamepads_sdl_actual_state[gamepadNumber].y = -1;
+						break;
+					case 0:
+						gamepads_sdl_actual_state[gamepadNumber].x = 0;
+						gamepads_sdl_actual_state[gamepadNumber].y = 1;
+						break;
+					case 1:
+						gamepads_sdl_actual_state[gamepadNumber].x = 1;
+						gamepads_sdl_actual_state[gamepadNumber].y = 1;
+						break;
+					case 2:
+						gamepads_sdl_actual_state[gamepadNumber].x = 0;
+						gamepads_sdl_actual_state[gamepadNumber].y = 1;
+						break;
+					case 3:
+						gamepads_sdl_actual_state[gamepadNumber].x = -1;
+						gamepads_sdl_actual_state[gamepadNumber].y = 1;
+						break;
+				}
+			}
+		}
+	}
+	else {
+		//calculating actual joy position for square
+		xminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
+		xmaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
+		yminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
+		ymaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
+		gamepads_sdl_actual_state[gamepadNumber].x = x > xmaxlimit ? 1 : (x < xminlimit ? -1 : 0);
+		gamepads_sdl_actual_state[gamepadNumber].y = y > ymaxlimit ? 1 : (y < yminlimit ? -1 : 0);
+	}
 	/*updating x and y for hats*/
 	hat = SDL_JoystickGetHat(sdl_gamepads[gamepadNumber], 0);
 	gamepads_sdl_actual_state[gamepadNumber].hx =  ((hat & SDL_HAT_LEFT) == SDL_HAT_LEFT) ? -1 : 0;
