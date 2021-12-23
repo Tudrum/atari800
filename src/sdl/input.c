@@ -577,18 +577,18 @@ static void GamePads_UpdatePad(int gamepadNumber)
 	y = SDL_JoystickGetAxis(sdl_gamepads[gamepadNumber], 1);
 
 	if (gamepad_configuration[gamepadNumber].radial) {
-		//calculating actual joy position for radial
-		//checking trigonometric coordinates for joy
+		/*calculating actual joy position for radial|*/
+		/*checking trigonometric coordinates for joy*/
 		angle_fine = atan2(y, x);
 		xn = ((double)x) / gamepad_configuration[gamepadNumber].deadzone;
 		yn = ((double)y) / gamepad_configuration[gamepadNumber].deadzone;
 		dist = xn * xn + yn * yn;
-		//checking if joy is out of actually triggered zone
+		/*checking if joy is out of actually triggered zone*/
 		recalc = FALSE;
 		last_crook = gamepads_sdl_last_state[gamepadNumber].x != 0 || gamepads_sdl_last_state[gamepadNumber].y != 0;
 		if (last_crook) {
 			if (dist < (1.0 - gamepad_configuration[gamepadNumber].tolerance) * (1.0 - gamepad_configuration[gamepadNumber].tolerance)) {
-				//recalc because joy was out of center and now is in center
+				/*recalc because joy was out of center and now is in center*/
 				recalc = TRUE;
 			}
 			else {
@@ -610,19 +610,19 @@ static void GamePads_UpdatePad(int gamepadNumber)
 					max_angle -= M_PI * 2;
 				}
 				if (angle_fine > max_angle || angle_fine < min_angle) {
-					//recalc because joy was off center in specific region and now is in another
+					/*recalc because joy was off center in specific region and now is in another*/
 					recalc = TRUE;
 				}
 			}
 		}
 		else {
 			if (dist > (1.0 + gamepad_configuration[gamepadNumber].tolerance) * (1.0 + gamepad_configuration[gamepadNumber].tolerance)) {
-				//recalc because joy was in center and now is off center
+				/*recalc because joy was in center and now is off center*/
 				recalc = TRUE;
 			}
 		}
 		if (recalc) {
-			//recalculating zone that joy is in
+			/*recalculating zone that joy is in*/
 			if (dist < 1.0) {
 				gamepads_sdl_actual_state[gamepadNumber].x = 0;
 				gamepads_sdl_actual_state[gamepadNumber].y = 0;
@@ -668,7 +668,7 @@ static void GamePads_UpdatePad(int gamepadNumber)
 		}
 	}
 	else {
-		//calculating actual joy position for square
+		/*calculating actual joy position for square*/
 		xminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
 		xmaxlimit = gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].x == 1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
 		yminlimit = -gamepad_configuration[gamepadNumber].deadzone * (1.0f + (gamepads_sdl_last_state[gamepadNumber].y == -1 ? -0.5f : 0.5f) * gamepad_configuration[gamepadNumber].tolerance);
