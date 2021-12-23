@@ -606,12 +606,18 @@ static void GamePads_UpdatePad(int gamepadNumber)
 				}
 				min_angle = last_angle * M_PI / 4 - M_PI / 8 * (1 + gamepad_configuration[gamepadNumber].radial_tolerance / 2);
 				max_angle = last_angle * M_PI / 4 + M_PI / 8 * (1 + gamepad_configuration[gamepadNumber].radial_tolerance / 2);
-				if (max_angle > M_PI) {
+				if (last_angle == 4) {
 					max_angle -= M_PI * 2;
+					if (angle_fine > max_angle && angle_fine < min_angle) {
+						/*recalc because joy was off center in specific region and now is in another*/
+						recalc = TRUE;
+					}
 				}
-				if (angle_fine > max_angle || angle_fine < min_angle) {
-					/*recalc because joy was off center in specific region and now is in another*/
-					recalc = TRUE;
+				else {
+					if (angle_fine > max_angle || angle_fine < min_angle) {
+						/*recalc because joy was off center in specific region and now is in another*/
+						recalc = TRUE;
+					}
 				}
 			}
 		}
@@ -648,8 +654,8 @@ static void GamePads_UpdatePad(int gamepadNumber)
 						gamepads_sdl_actual_state[gamepadNumber].y = -1;
 						break;
 					case 0:
-						gamepads_sdl_actual_state[gamepadNumber].x = 0;
-						gamepads_sdl_actual_state[gamepadNumber].y = 1;
+						gamepads_sdl_actual_state[gamepadNumber].x = 1;
+						gamepads_sdl_actual_state[gamepadNumber].y = 0;
 						break;
 					case 1:
 						gamepads_sdl_actual_state[gamepadNumber].x = 1;
