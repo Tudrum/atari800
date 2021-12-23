@@ -627,6 +627,7 @@ static void GamePads_UpdatePad(int gamepadNumber)
 				recalc = TRUE;
 			}
 		}
+		recalc = TRUE;
 		if (recalc) {
 			/*recalculating zone that joy is in*/
 			if (dist < 1.0) {
